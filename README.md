@@ -100,14 +100,8 @@ deterministic mock agents, so the retry loop is always demonstrable offline.
 - **Retry cap:** `MAX_RETRIES = 2` (same file) — the graph always terminates,
   approving best-effort with a lower confidence flag if the cap is hit.
 
-## Bonus features implemented
+## Extended Features
 
 - **Live graph visualization** highlighting the currently-executing node (Mermaid, rendered inline).
 - **Per-cycle history panel** — score, decision, and critique for every retry, shown side by side.
 - **Cost estimate** next to the token counter, using an approximate per-model $/1M-token table.
-
-## Known limitations
-
-*(To be filled in honestly once you've run it a few times — e.g. how the
-Researcher handles an empty knowledge base by explicitly reporting "no
-documents cover this," rather than inventing findings.)*
