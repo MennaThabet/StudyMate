@@ -7,11 +7,8 @@ in the loop.
 
 ## Demo
 
-**`StudyMate Research Agent Demo.mp4`** (repo root) shows a full run end to end:
-an objective entered → the reasoning stream (Planner → Researcher → Critic →
-Decision) → a failed quality check → an automatic retry → approval → the final
-report rendered and exported. Clone the repo and open the file directly, or
-watch it inline if your Git host renders `.mp4` previews.
+▶️ [**Watch the demo**](https://github.com/MennaThabet/StudyMate/blob/main/StudyMate%20Research%20Agent%20Demo.mp4) — full run end to end: an objective entered → the
+reasoning stream (Planner → Researcher → Critic → Decision) → approval → the final report rendered and exported.
 
 A written run is also included at **`agent_report.md`** (repo root) — a sample
 Markdown export produced by the Reporter node, generated the same way the
@@ -21,7 +18,6 @@ in-app download button produces one.
 
 ```
 agent/
-├── .gitkeep         # keeps the package directory tracked before other files existed
 ├── __init__.py       # marks agent/ as a Python package
 ├── state.py          # ResearchState (TypedDict) — the shared state schema
 ├── nodes.py           # planner, researcher, critic, decision, reporter
