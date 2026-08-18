@@ -8,6 +8,7 @@ planning, research, critique, or reporting.
 
 import os
 import tempfile
+import asyncio
 from pathlib import Path
 
 import streamlit as st
@@ -106,6 +107,28 @@ def mermaid_html(active_node: str | None) -> str:
     """
 
 
+def run_agent_stream(graph_app, initial_state, config):
+    """
+    Task 2's agent is now async (agent.astream), but Streamlit's script
+    model is sync. This drives the async generator one step at a time on
+    a dedicated event loop, yielding each event back into the normal
+    Streamlit for-loop below -- so nodes still render live, one by one,
+    instead of the whole run completing silently behind asyncio.run()
+    before anything shows up on screen.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    agen = graph_app.astream(initial_state, config=config)
+    try:
+        while True:
+            try:
+                yield loop.run_until_complete(agen.__anext__())
+            except StopAsyncIteration:
+                break
+    finally:
+        loop.close()
+
+
 # ---------------------------------------------------------------------------
 # sidebar: key + controls + file upload + token counter + cost estimate
 # ---------------------------------------------------------------------------
@@ -194,7 +217,7 @@ if prompt := st.chat_input("Enter a research objective..."):
 
         with st.status("Agent working...", expanded=True) as status:
             try:
-                for event in graph_app.stream(initial_state, config=config):
+                for event in run_agent_stream(graph_app, initial_state, config):
                     for node_name, update in event.items():
                         if isinstance(update, dict):
                             state_acc.update(update)
