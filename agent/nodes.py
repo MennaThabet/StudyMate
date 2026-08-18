@@ -53,8 +53,8 @@ def _get_llm(config):
     return ChatGroq(model=model, temperature=temperature)
 
 
-def _invoke_llm(llm, prompt: str) -> str:
-    resp = llm.invoke(prompt)
+async def _invoke_llm(llm, prompt: str) -> str:
+    resp = await llm.ainvoke(prompt)
     usage = getattr(resp, "usage_metadata", None) or {}
     tokens = usage.get("total_tokens", 0) if usage else 0
     _token_usage["total"] += tokens
@@ -75,7 +75,7 @@ def _extract_json(text: str) -> dict:
 # decomposes the goal into tasks. On retry it reads the Critic's critique from state and re-plans around it, 
 # instead of repeating the same plan
 
-def planner(state, config=None):
+async def planner(state, config=None):
     goal = state["goal"]
     critique = state.get("critique", "")
     llm = _get_llm(config)
@@ -87,7 +87,7 @@ def planner(state, config=None):
             "Return exactly 3 short, concrete research task bullets that specifically "
             "address any gaps named above. One per line, no numbering, no extra text."
         )
-        text = _invoke_llm(llm, prompt)
+        text = await _invoke_llm(llm, prompt)
         tasks = [t.strip("-* ").strip() for t in text.splitlines() if t.strip()][:3]
         if not tasks:
             tasks = [f"Research: {goal}"]
@@ -105,7 +105,7 @@ def planner(state, config=None):
 # Sources are embedded in each finding string (e.g. [Sources: doc.pdf])
 # so the Reporter can recover them without a non-contract state key.
 
-def researcher(state, config=None):
+async def researcher(state, config=None):
     llm = _get_llm(config)
     tasks = state["tasks"]
     findings = []
@@ -124,7 +124,7 @@ def researcher(state, config=None):
                 "instead of guessing.\n\n"
                 f"Task: {task}\n\nContext:\n{context}"
             )
-            text = _invoke_llm(llm, prompt)
+            text = await _invoke_llm(llm, prompt)
         else:
             text = f"[mock finding] {task}: " + context[:200]
 
@@ -139,7 +139,7 @@ def researcher(state, config=None):
 # scores completeness 0-1 and names concrete gaps. The gaps (not
 # just the score) are what let the Planner meaningfully re-plan.
 
-def critic(state, config=None):
+async def critic(state, config=None):
     llm = _get_llm(config)
     goal = state["goal"]
     findings_text = "\n".join(state.get("findings", []))
@@ -150,7 +150,7 @@ def critic(state, config=None):
             'Return ONLY JSON: {"score": <0..1 float>, "gaps": "<one concise sentence>"}.\n'
             f"Goal: {goal}\nFindings: {findings_text}"
         )
-        raw = _invoke_llm(llm, prompt)
+        raw = await _invoke_llm(llm, prompt)
         data = _extract_json(raw)
         try:
             score = float(data.get("score", 0.5))
@@ -179,7 +179,7 @@ def critic(state, config=None):
 # so router.route() only ever reads state (no side effects in
 # the conditional-edge function itself).
 
-def decision(state, config=None):
+async def decision(state, config=None):
     from .router import THRESHOLD, MAX_RETRIES
 
     score = state["quality_score"]
@@ -206,7 +206,7 @@ def decision(state, config=None):
 _SOURCE_TAG = re.compile(r"^\[Sources: ([^\]]*)\]\s*")
 
 
-def reporter(state, config=None):
+async def reporter(state, config=None):
     goal = state["goal"]
     findings = state.get("findings", [])
     findings_text = "\n".join(findings)
